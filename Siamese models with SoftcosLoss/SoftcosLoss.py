@@ -31,7 +31,7 @@ class SoftcosLoss(nn.Module):
         self.add = ADD
         self.embedding_dim = sentence_embedding_dimension
 
-        self.Us = nn.ParameterList([nn.Parameter(torch.randn(self.emb_dim, self.emb_dim)) for _ in range(num_labels)])
+        self.Us = nn.ParameterList([nn.Parameter(torch.randn(self.embedding_dim, self.embedding_dim)) for _ in range(num_labels)])
         logger.info("Softcos loss: #Labels: {}".format(num_labels))
         
         self.loss_fct = loss_fct
