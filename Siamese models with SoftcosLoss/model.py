@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import DataLoader, Dataset
-from sentence_transformers import util, losses, SentenceTransformer, models, evaluation
+from sentence_transformers import util, SentenceTransformer, models
 from SoftcosLoss import SoftcosLoss
 from SoftcosEvaluator import SoftcosEvaluator
 import os

@@ -1,13 +1,12 @@
 from contextlib import nullcontext
 import torch
-from sentence_transformers import SentenceTransformer, SentenceEvaluator
+from sentence_transformers import SentenceTransformer
+from sentence_transformers.evaluation import SentenceEvaluator
 import logging
 import os
 import csv
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-import numpy as np
-from typing import List, Literal, Optional
-from ..readers import InputExample
+from typing import List
 
 
 logger = logging.getLogger(__name__)
