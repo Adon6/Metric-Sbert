@@ -11,7 +11,7 @@ import os
 import gzip
 import csv
 import datetime
-losses.SoftmaxLoss
+
 def print_grad_fn(grad_fn, level=0):
     if grad_fn is None:
         return
