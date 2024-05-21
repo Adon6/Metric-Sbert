@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import DataLoader, Dataset
-from sentence_transformers import util, SentenceTransformer, models
+from sentence_transformers import util, SentenceTransformer, models, InputExample
 from SoftcosLoss import SoftcosLoss
 from SoftcosEvaluator import SoftcosEvaluator
 import os
@@ -29,8 +29,6 @@ class NLIDataset(Dataset):
                 if row["split"] == self.datasplit:
                     train_samples.append((row["sentence1"], row["sentence2"],label2int[row["label"]]))
                     count+=1
-                    if count >200:
-                        break
         self.dataset = train_samples
 
     def __len__(self):

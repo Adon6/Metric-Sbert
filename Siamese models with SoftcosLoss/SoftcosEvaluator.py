@@ -87,11 +87,10 @@ class SoftcosEvaluator(SentenceEvaluator):
         sentences1 = []
         sentences2 = []
         label = []
-        for i in range(len(dataset)):
-            s1, s2, l = dataset[i]
-            sentences1.append(s1)
-            sentences2.append(s2)
-            label.append(l)
+        for premise, hypothesis, labels in dataset:        
+                sentences1 += [sen1[0] for sen1 in premise]
+                sentences2 += [sen2[0] for sen2 in hypothesis]
+                label += [l[0] for l in labels]
 
         return cls(sentences1, sentences2, label, similarity, **kwargs)
 

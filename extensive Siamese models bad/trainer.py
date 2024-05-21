@@ -46,8 +46,7 @@ class NLIDataset(Dataset):
                 if row["split"] == self.datasplit:
                     train_samples.append((row["sentence1"], row["sentence2"],label2int[row["label"]]))
                     count+=1
-                    if count >200:
-                        break
+        print(f"In total {count} items for traininf")
         self.dataset = train_samples
 
     def __len__(self):
