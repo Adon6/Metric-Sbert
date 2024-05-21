@@ -1,7 +1,6 @@
 from contextlib import nullcontext
 import torch
-from sentence_transformers import SentenceTransformer
-from . import SentenceEvaluator
+from sentence_transformers import SentenceTransformer, SentenceEvaluator
 import logging
 import os
 import csv
