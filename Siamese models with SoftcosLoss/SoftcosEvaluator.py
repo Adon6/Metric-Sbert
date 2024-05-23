@@ -1,6 +1,6 @@
 from contextlib import nullcontext
 import torch
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, InputExample
 from sentence_transformers.evaluation import SentenceEvaluator
 import logging
 import os
@@ -80,17 +80,27 @@ class SoftcosEvaluator(SentenceEvaluator):
             + ("_" + name if name else "")
             + "_matrix.pth"
         )
+    @classmethod
+    def from_input_examples(cls, examples: List[InputExample], similarity, **kwargs):
+        sentences1 = []
+        sentences2 = []
+        labels = []
 
+        for example in examples:
+            sentences1.append(example.texts[0])
+            sentences2.append(example.texts[1])
+            labels.append(example.label)
+        return cls(sentences1, sentences2, labels, similarity, **kwargs)
 
     @classmethod
-    def from_input_examples(cls, dataset, similarity, **kwargs):
+    def from_inputxx_examples(cls, dataset, similarity, **kwargs):
         sentences1 = []
         sentences2 = []
         label = []
         for premise, hypothesis, labels in dataset:        
-                sentences1 += [sen1[0] for sen1 in premise]
-                sentences2 += [sen2[0] for sen2 in hypothesis]
-                label += [l[0] for l in labels]
+            sentences1 += [sen1 for sen1 in premise]
+            sentences2 += [sen2 for sen2 in hypothesis]
+            label += [l for l in labels]
 
         return cls(sentences1, sentences2, label, similarity, **kwargs)
 
@@ -103,7 +113,7 @@ class SoftcosEvaluator(SentenceEvaluator):
         else:
             out_txt = ""
 
-        logger.info(f"EmbeddingSimilarityEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
+        logger.info(f"SoftcosEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
 
         with nullcontext():
             embeddings1 = model.encode(
@@ -153,11 +163,10 @@ class SoftcosEvaluator(SentenceEvaluator):
 
             metadata = {
                 'model_type': self.similarity.model_name,
-                'embedding_model': self.similarity.embedding_model,
                 'normalized': self.similarity.normalized
             }
             model_dict['metadata'] = metadata
 
             torch.save(model_dict, evaluator_path)
 
-        return f1, accuracy, precision, recall 
+        return accuracy

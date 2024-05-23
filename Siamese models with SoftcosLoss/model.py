@@ -7,6 +7,10 @@ import os
 import gzip
 import csv
 import datetime
+import logging
+
+
+TEST = True
 
 # dataset allnli
 class NLIDataset(Dataset):
@@ -29,6 +33,8 @@ class NLIDataset(Dataset):
                 if row["split"] == self.datasplit:
                     train_samples.append((row["sentence1"], row["sentence2"],label2int[row["label"]]))
                     count+=1
+                    if count > 50 and TEST:
+                        break
         self.dataset = train_samples
 
     def __len__(self):
@@ -36,7 +42,8 @@ class NLIDataset(Dataset):
     
     def __getitem__(self, idx):
         premise, hypothesis, label  = self.dataset[idx]
-        return premise, hypothesis, label
+        return InputExample(texts=[premise, hypothesis], label=label)
+        #return premise, hypothesis, label
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -48,25 +55,45 @@ model = SentenceTransformer(
     device = device,
     )
 
-data = NLIDataset("train", device)
-dataloader = DataLoader(data, batch_size=32, shuffle=True)
+logging.info("Read AllNLI train dataset")
+
+nli_dataset_path = "data/AllNLI.tsv.gz"
+if not os.path.exists(nli_dataset_path):
+    util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
+
+label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
+train_samples = []
+with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
+    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
+    for row in reader:
+        if row["split"] == "train":
+            label_id = label2int[row["label"]]
+            train_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
+
+
+train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=32)
+#data = NLIDataset("train", device)
+#dataloader = DataLoader(data, batch_size=32, shuffle=True)
+logging.info("AllNLI train data loaded.")
 
 
 Softcos_addtype = True
 normalized = False
 N_emb = model.get_sentence_embedding_dimension()
-train_loss = SoftcosLoss(model, sentence_embedding_dimension = N_emb, num_labels= 3, normalized= normalized, ADD= Softcos_addtype)
+train_loss = SoftcosLoss(model, sentence_embedding_dimension = N_emb, num_labels= 3, normalized= normalized, ADD= Softcos_addtype, device= device)
 
-testdata = NLIDataset("test", device)
+logging.info("read AllNLI dev data.")
+
+testdata = NLIDataset("dev", device)
 testdataloader = DataLoader(testdata, batch_size=1, shuffle=True)
 evaluator = SoftcosEvaluator.from_input_examples(testdataloader, train_loss, name = "Add" if Softcos_addtype else "Mul")
 
 # Tune the model
 model.fit(
-    train_objectives=[(dataloader, train_loss)], 
-    epochs=10, 
-    warmup_steps=100,
+    train_objectives=[(train_dataloader, train_loss)], 
+    epochs=2, 
+    warmup_steps=10,
     checkpoint_path = "SModel",
     evaluator=evaluator,
-    evaluation_steps=500,
+    evaluation_steps=10,
     )
