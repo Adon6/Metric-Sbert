@@ -1,12 +1,11 @@
 import torch
 from torch.utils.data import DataLoader, Dataset
 from sentence_transformers import util, SentenceTransformer, models, InputExample
-from SoftcosLoss import SoftcosLoss
-from SoftcosEvaluator import SoftcosEvaluator
+from BilinearLoss import BilinearLoss
+from BilinearEvaluator import BilinearEvaluator
 import os
 import gzip
 import csv
-import datetime
 import logging
 
 

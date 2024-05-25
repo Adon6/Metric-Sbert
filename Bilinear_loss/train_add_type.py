@@ -46,17 +46,16 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-
 # Read the dataset
 train_batch_size = 8
 
 
 model_save_path = (
-    "output/training_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    "output/training_add_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
 checkpoint_save_path = (
-    "output/training_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
+    "output/training_add_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
 )
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
@@ -169,7 +168,7 @@ with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
             test_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
 
 model = SentenceTransformer(model_save_path)
-test_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
+test_evaluator = BilinearEvaluator.from_input_examples(
     test_samples, batch_size=train_batch_size, name="sts-test"
 )
 test_evaluator(model, output_path=model_save_path)
