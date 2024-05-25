@@ -9,22 +9,21 @@ python training_nli.py
 OR
 python training_nli.py pretrained_transformer_model_name
 """
-
+import torch
 from torch.utils.data import DataLoader
 import math
 from sentence_transformers import models, losses
 from sentence_transformers import LoggingHandler, SentenceTransformer, util, InputExample
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 import logging
 from datetime import datetime
 import sys
 import os
 import gzip
 import csv
-from SoftcosLoss import SoftcosLoss
-from SoftcosEvaluator import SoftcosEvaluator
+from BilinearLoss import BilinearLoss
+from BilinearEvaluator import BilinearEvaluator
 
-TEST = True
+TEST = False
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(
@@ -44,15 +43,21 @@ if not os.path.exists(nli_dataset_path):
 
 # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
 model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 
 # Read the dataset
-train_batch_size = 16
+train_batch_size = 8
 
 
 model_save_path = (
     "output/training_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
+checkpoint_save_path = (
+    "output/training_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
+)
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
 word_embedding_model = models.Transformer(model_name)
@@ -65,7 +70,10 @@ pooling_model = models.Pooling(
     pooling_mode_max_tokens=False,
 )
 
-model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
+model = SentenceTransformer(
+    modules=[word_embedding_model, pooling_model],
+    device = device,
+    )
 
 
 # Read the AllNLI.tsv.gz file and create the training dataset
@@ -82,14 +90,15 @@ with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
             label_id = label2int[row["label"]]
             train_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
             count += 1
-            if count > 5000 and TEST:
+            if count > 500 and TEST:
                 break
 
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
-train_loss = SoftcosLoss(
+train_loss = BilinearLoss(
     model=model, 
     sentence_embedding_dimension=model.get_sentence_embedding_dimension(), 
     num_labels=len(label2int),
+    device = device,
 )
 
 """
@@ -116,13 +125,16 @@ with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
             label_id = label2int[row["label"]]
             dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
 
-dev_evaluator = SoftcosEvaluator.from_input_examples(
-    dev_samples, batch_size=train_batch_size, name="nli_add_", similarity=train_loss
+dev_evaluator = BilinearEvaluator.from_input_examples(
+    dev_samples, 
+    batch_size=train_batch_size, 
+    name="add", 
+    similarity=train_loss
 )
 
 
 # Configure the training
-num_epochs = 1
+num_epochs = 10
 
 warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
 logging.info("Warmup-steps: {}".format(warmup_steps))
@@ -133,9 +145,11 @@ model.fit(
     train_objectives=[(train_dataloader, train_loss)],
     evaluator=dev_evaluator,
     epochs=num_epochs,
-    evaluation_steps=1000,
+    evaluation_steps=2000,
     warmup_steps=warmup_steps,
     output_path=model_save_path,
+    checkpoint_path=checkpoint_save_path,
+    checkpoint_save_steps= 2000,
 )
 
 

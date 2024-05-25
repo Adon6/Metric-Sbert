@@ -8,7 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class SoftcosLoss(nn.Module):
+class BilinearLoss(nn.Module):
     def __init__(
         self,
         model: SentenceTransformer,
@@ -17,14 +17,14 @@ class SoftcosLoss(nn.Module):
         loss_fct: Callable = nn.CrossEntropyLoss(),
         normalized : bool= False,
         ADD : bool = True,
-        device = None,
+        device :str | None = None,
     ):
         """
         This loss was used in our SBERT publication (https://arxiv.org/abs/1908.10084) to train the SentenceTransformer
         model on NLI data. It adds a softmax classifier on top of the output of two transformer networks.
 
         """
-        super(SoftcosLoss, self).__init__()
+        super(BilinearLoss, self).__init__()
         self.model = model
         self.num_labels = num_labels
         self.normalized = normalized
@@ -33,8 +33,8 @@ class SoftcosLoss(nn.Module):
         self.embedding_dim = sentence_embedding_dimension
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.Us = nn.ParameterList([nn.Parameter(torch.randn(self.embedding_dim, self.embedding_dim).to(self.device)) for _ in range(num_labels)])
-        logger.info("Softcos loss: #Labels: {}".format(num_labels))
+        self.Us = nn.ParameterList([nn.Parameter(torch.randn(self.embedding_dim, self.embedding_dim).to(self.device)) for _ in range(num_labels)]).to(self.device)
+        logger.info("Bilinear loss: #Labels: {}".format(num_labels))
         
         self.loss_fct = loss_fct
 
@@ -42,6 +42,8 @@ class SoftcosLoss(nn.Module):
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         e1, e2 = reps
         e1, e2 = Tensor(e1).to(self.device), Tensor(e2).to(self.device)
+        self.Us = self.Us.to(self.device)
+        
         if self.normalized:
             e1 = nn.functional.normalize(e1, p=2)# example normalization
             e2 = nn.functional.normalize(e2, p=2)# example normalization
@@ -60,19 +62,17 @@ class SoftcosLoss(nn.Module):
             return reps, output
 
     def sim(self, e1, e2):
-        e1, e2 = Tensor(e1).to('cpu'), Tensor(e2).to('cpu')
-        print(self.device)
-        print(e1.device)
-        print(e2.device)
+        eval_device = 'cpu'
+        e1, e2 = Tensor(e1).to(eval_device), Tensor(e2).to(eval_device)
+        self.Us = self.Us.to(eval_device)
         if self.normalized:
             e1 = nn.functional.normalize(e1, p=2)# example normalization
             e2 = nn.functional.normalize(e2, p=2)# example normalization
 
-        Us = self.Us.to('cpu')
         if self.add:
-            qs = [torch.sum(e1 * (e2 @ (U + U.t()) ), dim=1) for U in Us] # W = W.T
+            qs = [torch.sum(e1 * (e2 @ (U + U.t()) ), dim=1) for U in self.Us] # W = W.T
         else:
-            qs = [torch.sum(e1 * (e2 @ (U @ U.t()) ), dim=1) for U in Us] # W = W.T
+            qs = [torch.sum(e1 * (e2 @ (U @ U.t()) ), dim=1) for U in self.Us] # W = W.T
         
         output = torch.stack(qs, dim= 1)
 
