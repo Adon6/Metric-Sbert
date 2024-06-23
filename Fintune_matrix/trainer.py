@@ -108,12 +108,10 @@ class NLIModelTrainer():
             
             if average_loss < minloss:
                 minloss = average_loss
-                self.save_path = self.generate_save_path(str(epoch+1))
-                self.save_model()   
+                self.save_model(str(epoch+1)+"_loss_"+f"{average_loss:.4f}")   
                 logging.info(f"Model saved to {self.save_path}")
         
-        self.save_path = self.generate_save_path("final")  
-        self.save_model()   
+        self.save_model("final"+"_loss_"+f"{average_loss:.4f}")   
         logging.info(f"Model saved to {self.save_path}")
 
     def testx(self, batch_size=1):
@@ -180,7 +178,10 @@ class NLIModelTrainer():
     def plot(self):
         pass  # Placeholder for potential future plot implementations
 
-    def save_model(self):
+    def save_model(self, path = None):
+        if path is not None:
+            self.save_path = self.generate_save_path(path)
+
         model_dict = self.siamese_model.state_dict()
         # exclude Embedding model for saving storage
         model_dict_filtered = {k: v for k, v in model_dict.items() if not k.startswith('E.sbert')}

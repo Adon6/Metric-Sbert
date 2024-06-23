@@ -12,11 +12,11 @@ class BilinearLoss(nn.Module):
     def __init__(
         self,
         model: SentenceTransformer,
+        sentence_embedding_dimension: int,
         num_labels: int,
         loss_fct: Callable = nn.CrossEntropyLoss(),
-        sentence_model_name: str = None,
-        normalization : str= "",
-        sim_method : str = "ADD",
+        normalized : bool= False,
+        ADD : bool = True,
         device :str | None = None,
     ):
         """
@@ -27,11 +27,10 @@ class BilinearLoss(nn.Module):
         super(BilinearLoss, self).__init__()
         self.model = model
         self.num_labels = num_labels
-        self.normalization = normalization
-        self.model_name = sim_method + "_" + normalization + "_"
-        self.sentence_model_name = sentence_model_name
-        self.sim_method = sim_method
-        self.embedding_dim = model.get_sentence_embedding_dimension()
+        self.normalized = normalized
+        self.model_name = ("ADD" if ADD else "MUL") + ("_N" if normalized else "")
+        self.add = ADD
+        self.embedding_dim = sentence_embedding_dimension
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
 
         self.Us = nn.ParameterList([nn.Parameter(torch.randn(self.embedding_dim, self.embedding_dim).to(self.device)) for _ in range(num_labels)]).to(self.device)
@@ -39,16 +38,22 @@ class BilinearLoss(nn.Module):
         
         self.loss_fct = loss_fct
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor = None):
+    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         e1, e2 = reps
         e1, e2 = Tensor(e1).to(self.device), Tensor(e2).to(self.device)
         self.Us = self.Us.to(self.device)
-    
-        e1, e2 = self.get_norm_emb(e1, e2)
+        
+        if self.normalized:
+            e1 = nn.functional.normalize(e1, p=2)# example normalization
+            e2 = nn.functional.normalize(e2, p=2)# example normalization
 
-        Ms = self.get_sim_mat()
-        output = torch.stack([torch.sum(e1 * (e2 @ M) , dim=1) for M in Ms], dim= 1 )
+        if self.add:
+            qs = [torch.sum(e1 * (e2 @ (U + U.t()) ), dim=1) for U in self.Us] # W = W.T
+        else:
+            qs = [torch.sum(e1 * (e2 @ (U @ U.t()) ), dim=1) for U in self.Us] # W = W.T
+        #output = qs
+        output = torch.stack(qs, dim= 1)
 
         if labels is not None:
             loss = self.loss_fct(output, labels.view(-1))
@@ -60,50 +65,43 @@ class BilinearLoss(nn.Module):
         eval_device = 'cpu'
         e1, e2 = Tensor(e1).to(eval_device), Tensor(e2).to(eval_device)
         self.Us = self.Us.to(eval_device)
+        if self.normalized:
+            e1 = nn.functional.normalize(e1, p=2)# example normalization
+            e2 = nn.functional.normalize(e2, p=2)# example normalization
 
-        e1, e2 = self.get_norm_emb(e1, e2)
-
-        Ms = self.get_sim_mat()
-        output = torch.stack([torch.sum(e1 * (e2 @ M) , dim=1) for M in Ms], dim= 1 )
+        if self.add:
+            qs = [torch.sum(e1 * (e2 @ ((U + U.t())/2) ), dim=1) for U in self.Us] # W = W.T
+        else:
+            qs = [torch.sum(e1 * (e2 @ (U @ U.t()) ), dim=1) for U in self.Us] # W = W.T
+        
+        output = torch.stack(qs, dim= 1)
 
         return output
     
-    def get_norm_emb(self, e1 ,e2):
-        if self.normalization:
-            e1 = nn.functional.normalize(e1, p=2)# example normalization
-            e2 = nn.functional.normalize(e2, p=2)# example normalization
-        return e1, e2
-
     def get_sim_mat(self):
-        if self.sim_method == "ADD":
+        if self.add:
             Ms = torch.stack( [(U + U.t())/2 for U in self.Us] )# W = W.T
-        elif self.sim_method == "MUL":
-            Ms =  torch.stack( [ U @ U.t() for U in self.Us] )# W = W.T
         else:
-            Ms =  self.Us
+            Ms =  torch.stack( [ U @ U.t() for U in self.Us] )# W = W.T
 
         return Ms
 
     def save(self, path):
        torch.save({
             'model_state_dict': self.model.state_dict(),
-            'sim_mat': self.get_sim_mat(),
-            'sim_method': self.sim_method,
-            'normalization': self.normalization,
-            'num_labels': self.num_labels,
-            'embedding_dim': self.embedding_dim,
-            'loss_fct' : self.loss_fct,
-            'sentence_model_name' : self.sentence_model_name
+            'sim_mat': self.sim_mat
         }, path)
 
     @classmethod
-    def load(cls, path):
+    def loadcls(cls, path, sentence_transformer_model):
         checkpoint = torch.load(path)
-        model = SentenceTransformer.load(checkpoint['sentence_model_name'])
+        model = sentence_transformer_model
         model.load_state_dict(checkpoint['model_state_dict'])
         sim_mat = checkpoint['sim_mat']
         return cls(model, sim_mat)
     
+    @staticmethod
+    def load(model_path, sentence_transformer_model):
         model_dict = torch.load(model_path)
 
         #print(model_dict.keys())
