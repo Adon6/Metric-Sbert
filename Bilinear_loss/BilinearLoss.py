@@ -1,6 +1,6 @@
 import torch
 from torch import nn, Tensor
-from typing import Iterable, Dict, Callable
+from typing import Iterable, Dict, Callable, Optional
 from sentence_transformers import SentenceTransformer
 import logging
 

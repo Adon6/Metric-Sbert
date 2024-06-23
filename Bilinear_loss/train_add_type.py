@@ -47,7 +47,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 # Read the dataset
-train_batch_size = 8
+train_batch_size = 32
 
 
 model_save_path = (
@@ -147,8 +147,8 @@ model.fit(
     evaluation_steps=2000,
     warmup_steps=warmup_steps,
     output_path=model_save_path,
-    checkpoint_path=checkpoint_save_path,
-    checkpoint_save_steps= 2000,
+    #checkpoint_path=checkpoint_save_path,
+    #checkpoint_save_steps= 2000,
 )
 
 

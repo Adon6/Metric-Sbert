@@ -146,9 +146,10 @@ class BilinearEvaluator(SentenceEvaluator):
                 )
 
             # Save matrix
-            evaluator_path = os.path.join(
-                output_path, 
-                "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file
+            if steps < 0:
+                evaluator_path = os.path.join(
+                    output_path, 
+                    "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file
                 )
             self.similarity.save(evaluator_path)
             
