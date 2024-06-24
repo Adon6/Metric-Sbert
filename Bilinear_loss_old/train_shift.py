@@ -13,13 +13,13 @@ from datetime import datetime
 
 # training config
 # model_name = 'sentence-transformers/all-mpnet-base-v2'
-model_name ='roberta-base'
+model_name ='bert-base-uncased'
 #model_save_path = '../xs_models/droberta_bilinear'
 model_save_path = (
     "output/finetune_add_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
-model_path = 'data\\training_add2_nli_roberta-base-2024-06-05_14-35-49_L0-9\eval\epoch9_step-1_sim_evaluation_add_matrix.pth'
-train_batch_size = 16 
+model_path = 'input/training_add2_nli_bert-base-uncased-2024-06-04_18-01-47_L0-9/eval/epoch9_step-1_sim_evaluation_add_matrix.pth'
+train_batch_size = 32 
 num_epochs = 5
 
 if not os.path.exists(model_save_path):
@@ -67,7 +67,7 @@ evaluator = BilinearEvaluator.from_input_examples(
 model.fit(train_objectives=[(train_dataloader, bilinear_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
-          evaluation_steps=1000,
+          evaluation_steps=4000,
           warmup_steps=math.ceil(len(train_dataloader) * num_epochs  * 0.1),
           output_path=model_save_path,
           )
