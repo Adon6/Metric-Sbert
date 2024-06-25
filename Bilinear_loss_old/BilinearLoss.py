@@ -1,6 +1,6 @@
 import torch
 from torch import nn, Tensor
-from typing import Iterable, Dict, Callable
+from typing import Iterable, Dict, Callable, Optional
 from sentence_transformers import SentenceTransformer
 import logging
 
@@ -17,7 +17,7 @@ class BilinearLoss(nn.Module):
         loss_fct: Callable = nn.CrossEntropyLoss(),
         normalized : bool= False,
         ADD : bool = True,
-        device :str | None = None,
+        device :Optional[str] = None,
     ):
         """
         This loss was used in our SBERT publication (https://arxiv.org/abs/1908.10084) to train the SentenceTransformer

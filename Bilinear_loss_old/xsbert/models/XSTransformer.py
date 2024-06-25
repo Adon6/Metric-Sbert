@@ -72,19 +72,18 @@ class XSTransformer(SentenceTransformer):
     #def set_similarity(self, sim_measure: str = 'dot', sim_mat: torch.Tensor | None = None) -> None:
     def _set_similarity(self) -> None:
         
-        match self.sim_measure:
-            case 'cos': 
-                self.sim_fun = utils.cossim
-            case 'dot':
-                self.sim_fun = utils.dotsim
-            case 'gencos':
-                pass
-            case 'softcos':
-                pass
-            case 'bilinear':
-                self.sim_fun = utils.bilinear_sim
-            case _:
-                raise(f'invalid argument for sim_measure: {self.sim_measure}')
+        if self.sim_measure == 'cos':
+            self.sim_fun = utils.cossim
+        elif self.sim_measure == 'dot':
+            self.sim_fun = utils.dotsim
+        elif self.sim_measure == 'gencos':
+            self.sim_fun = utils.gencos_sim
+        elif self.sim_measure == 'softcos':
+            self.sim_fun = utils.softcos_sim
+        elif self.sim_measure == 'bilinear':
+            self.sim_fun = utils.bilinear_sim
+        else:
+            raise(f'invalid argument for sim_measure: {self.sim_measure}')
     
     def _compute_integrated_jacobian(
             self, 
