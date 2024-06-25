@@ -17,7 +17,7 @@ class BilinearLoss(nn.Module):
         sentence_model_name: str = None,
         normalization : str= "",
         sim_method : str = "ADD",
-        device :str | None = None,
+        device :Optional[str] = None,
     ):
         """
         This loss was used in our SBERT publication (https://arxiv.org/abs/1908.10084) to train the SentenceTransformer

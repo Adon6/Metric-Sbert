@@ -151,6 +151,6 @@ class BilinearEvaluator(SentenceEvaluator):
                     output_path, 
                     "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file
                 )
-            self.similarity.save(evaluator_path)
+                self.similarity.save(evaluator_path)
             
         return accuracy
