@@ -46,7 +46,7 @@ model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Read the dataset
-train_batch_size = 32
+train_batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
 
 
 model_save_path = (
@@ -88,7 +88,7 @@ with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
             label_id = label2int[row["label"]]
             train_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
             count += 1
-            if count > 500 and TEST:
+            if count > 50 and TEST:
                 break
 
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)

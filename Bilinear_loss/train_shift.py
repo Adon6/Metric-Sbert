@@ -67,7 +67,7 @@ evaluator = BilinearEvaluator.from_input_examples(
 model.fit(train_objectives=[(train_dataloader, bilinear_loss)],
           evaluator=evaluator,
           epochs=num_epochs,
-          evaluation_steps=1000,
+          evaluation_steps=4000,
           warmup_steps=math.ceil(len(train_dataloader) * num_epochs  * 0.1),
           output_path=model_save_path,
           )
