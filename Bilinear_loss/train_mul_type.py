@@ -94,10 +94,10 @@ with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = BilinearLoss(
     model=model, 
-    sentence_embedding_dimension=model.get_sentence_embedding_dimension(), 
     num_labels=len(label2int),
+    sentence_model_name = model_name,
+    sim_method = "MUL",
     device = device,
-    ADD = False,
 )
 
 

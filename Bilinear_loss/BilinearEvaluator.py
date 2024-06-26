@@ -146,11 +146,11 @@ class BilinearEvaluator(SentenceEvaluator):
                 )
 
             # Save matrix
-            if steps < 0:
+            if steps < 0 and epoch in [0,3,4,5,9]:
                 evaluator_path = os.path.join(
                     output_path, 
                     "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file
                 )
-            self.similarity.save(evaluator_path)
+                self.similarity.save(evaluator_path)
             
         return accuracy

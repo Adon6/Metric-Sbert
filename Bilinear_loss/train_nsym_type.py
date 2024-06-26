@@ -45,17 +45,16 @@ if not os.path.exists(nli_dataset_path):
 model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
 # Read the dataset
 train_batch_size = 32
 
 
 model_save_path = (
-    "output/training_add_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    "output/training_mul_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
 checkpoint_save_path = (
-    "output/training_add_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
+    "output/training_mul_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
 )
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
@@ -97,25 +96,11 @@ train_loss = BilinearLoss(
     model=model, 
     num_labels=len(label2int),
     sentence_model_name = model_name,
-    sim_method = "ADD",
+    sim_method = "Nsym",
     device = device,
 )
 
-"""
-# Read STSbenchmark dataset and use it as development set
-logging.info("Read STSbenchmark dev dataset")
-dev_samples = []
-with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row["split"] == "dev":
-            score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
-            dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
 
-dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
-    dev_samples, batch_size=train_batch_size, name="sts-dev"
-)
-"""
 label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
 dev_samples = []
 with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
@@ -128,7 +113,7 @@ with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
 dev_evaluator = BilinearEvaluator.from_input_examples(
     dev_samples, 
     batch_size=train_batch_size, 
-    name="add", 
+    name="nsym", 
     similarity=train_loss
 )
 
