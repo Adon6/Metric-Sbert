@@ -145,20 +145,22 @@ class BilinearEvaluator(SentenceEvaluator):
                     ]
                 )
 
-            # Save matrix
-            evaluator_path = os.path.join(
-                output_path, 
-                "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file
-                )
-            model_dict = self.similarity.state_dict()
+            if steps < 0:
 
-            metadata = {
-                'model_type': self.similarity.model_name,
-                'normalized': self.similarity.normalized,
-                'embedding_dimension': self.similarity.embedding_dim,
-            }
-            model_dict['metadata'] = metadata
+                # Save matrix
+                evaluator_path = os.path.join(
+                    output_path, 
+                    "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file
+                    )
+                model_dict = self.similarity.state_dict()
 
-            torch.save(model_dict, evaluator_path)
+                metadata = {
+                    'model_type': self.similarity.model_name,
+                    'normalized': self.similarity.normalized,
+                    'embedding_dimension': self.similarity.embedding_dim,
+                }
+                model_dict['metadata'] = metadata
+
+                torch.save(model_dict, evaluator_path)
 
         return accuracy
