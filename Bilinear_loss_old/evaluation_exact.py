@@ -1,12 +1,12 @@
 import torch
 from BilinearLoss import BilinearLoss
 from sentence_transformers import SentenceTransformer
-from xsbert.models import XSBert,XSRoberta,ReferenceTransformer
+from xsbert.models import XSBert,XSRoberta,ShiftingReferenceTransformer
 import xsbert.utils as utils
 
 
 # load model
-model_path = 'data/training_add2_nli_bert-base-uncased-2024-06-04_18-01-47_L0-9/eval/epoch9_step-1_sim_evaluation_add_matrix.pth'
+model_path = 'data/finetune_add_nli_bert-base-uncased-2024-06-24_14-45-54/eval/epoch3_step-1_sim_evaluation_add-shift_matrix.pth'
 sentence_transformer_model = SentenceTransformer('bert-base-uncased')
 
 """
@@ -31,7 +31,7 @@ transformer_layer = bilinear_loss.model[0]
 # 保存 transformer 层到文件
 save_path =  'transformer_layerxx'
 transformer_layer.save(save_path)
-transformer = ReferenceTransformer.load(save_path)
+transformer = ShiftingReferenceTransformer.load(save_path)
 
 pooling = bilinear_loss.model[1]
 test_sbert = XSRoberta(modules=[transformer, pooling], sim_measure= "bilinear", sim_mat= bilinear_loss.get_sim_mat())
@@ -44,7 +44,7 @@ print("Start to calculate.")
 
 test_sbert.to(torch.device('cuda'))
 test_sbert.reset_attribution()
-test_sbert.init_attribution_to_layer(idx=5, N_steps=60)
+test_sbert.init_attribution_to_layer(idx=5, N_steps=100)
 
 texta = 'The coffee is bad.'
 textb = 'This is not a good coffee.'
@@ -69,7 +69,7 @@ f = utils.plot_attributions_multi(
         size=(5, 5),
         show_colorbar=True, 
         shrink_colorbar=.5,
-        dst_path= "figsave_all",
+        dst_path= "figsave_all_finetuned100",
         labels=["Entailment", "Neutral", "Contradiction"]
     )
 

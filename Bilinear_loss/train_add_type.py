@@ -23,7 +23,7 @@ import csv
 from BilinearLoss import BilinearLoss
 from BilinearEvaluator import BilinearEvaluator
 
-TEST = False
+TEST = True
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(
@@ -43,7 +43,7 @@ if not os.path.exists(nli_dataset_path):
 
 # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
 model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda:2" if torch.cuda.is_available() else "cpu"
 
 
 # Read the dataset
@@ -89,7 +89,7 @@ with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
             label_id = label2int[row["label"]]
             train_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
             count += 1
-            if count > 500 and TEST:
+            if count > 200 and TEST:
                 break
 
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
