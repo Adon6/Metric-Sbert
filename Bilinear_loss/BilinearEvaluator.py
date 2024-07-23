@@ -146,7 +146,7 @@ class BilinearEvaluator(SentenceEvaluator):
                 )
 
             # Save matrix
-            if steps < 0 and epoch in [0,3,4,5,9]:
+            if steps < 0:
                 evaluator_path = os.path.join(
                     output_path, 
                     "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file
