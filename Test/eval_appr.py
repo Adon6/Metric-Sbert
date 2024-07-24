@@ -6,16 +6,16 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import torch
+import pandas as pd
 from sentence_transformers import SentenceTransformer
 from Bilinear_loss_old.BilinearLoss import BilinearLoss
 from xsbert.models import XSRoberta, ReferenceTransformer
 from xsbert.utils import plot_attributions_multi
 
-
 # Load model
-model_path = 'data/training_add2_nli_bert-base-uncased-2024-06-04_18-01-47_L0-9/eval/epoch9_step-1_sim_evaluation_add_matrix.pth'
-sentence_transformer_model = SentenceTransformer('bert-base-uncased')
-model_name = "training_add2_nli_bert-base-uncased_epoch9_"
+model_path = "data/training_add2_nli_sentence-transformers-all-distilroberta-v1-2024-06-10_14-52-37+sD/eval/epoch9_step-1_sim_evaluation_add_matrix.pth"
+sentence_transformer_model = SentenceTransformer('sentence-transformers/all-distilroberta-v1')
+model_name = "training_add_distilroberta_epoch9_"
 bilinear_loss = BilinearLoss.load(model_path, sentence_transformer_model)
 
 # Path for the Excel file
@@ -28,7 +28,7 @@ results_df = pd.DataFrame(columns=['texta', 'textb', 'A_sum', 'score', 'ra', 'rb
 transformer_layer = bilinear_loss.model[0]
 
 # Save transformer layer to file
-save_path = 'transformer_layerxx'
+save_path = 'transformer_layerzz'
 transformer_layer.save(save_path)
 transformer = ReferenceTransformer.load(save_path)
 
@@ -244,11 +244,11 @@ for i, (texta, textb, label) in enumerate(text_pairs):
 
     #print("A.shape: ", A.shape)
 
-    A_sum = A.sum(dim=(1, 2)).cpu().numpy()
-    score_np = score.cpu().numpy()
-    ra_np = ra.cpu().numpy()
-    rb_np = rb.cpu().numpy()
-    rr_np = rr.cpu().numpy()
+    A_sum = A.sum(dim=(1, 2)).detach().cpu().numpy()
+    score_np = score.detach().cpu().numpy()
+    ra_np = ra.detach().cpu().numpy()
+    rb_np = rb.detach().cpu().numpy()
+    rr_np = rr.detach().cpu().numpy()
 
     sum_true = score_np - ra_np - rb_np + rr_np
     loss = A_sum - sum_true
