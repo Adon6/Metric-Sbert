@@ -1,10 +1,16 @@
-import torch
+
+import sys
 import os
-import pandas as pd
+
+# Add the parent directory to the sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+import torch
 from sentence_transformers import SentenceTransformer
-from ..Bilinear_loss_old.BilinearLoss import BilinearLoss
-from ..xsbert.models import XSRoberta, ReferenceTransformer
-from ..xsbert.utils import plot_attributions_multi
+from Bilinear_loss_old.BilinearLoss import BilinearLoss
+from xsbert.models import XSRoberta, ReferenceTransformer
+from xsbert.utils import plot_attributions_multi
+
 
 # Load model
 model_path = 'data/training_add2_nli_bert-base-uncased-2024-06-04_18-01-47_L0-9/eval/epoch9_step-1_sim_evaluation_add_matrix.pth'
