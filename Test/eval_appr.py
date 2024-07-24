@@ -41,7 +41,7 @@ print("Start to calculate.")
 
 test_sbert.to(torch.device('cuda'))
 test_sbert.reset_attribution()
-test_sbert.init_attribution_to_layer(idx=10, N_steps=100)
+test_sbert.init_attribution_to_layer(idx=5, N_steps=100)
 
 # Multiple pairs of text
 text_pairs = [
@@ -274,20 +274,24 @@ for i, (texta, textb, label) in enumerate(text_pairs):
     print(f"Saved figure to {fig_save_path}")
     print(A_sum, sum_true)
 
-    # Append results to DataFrame
-    results_df = results_df.append({
-        'texta': texta,
-        'textb': textb,
-        'A_sum': A_sum.tolist(),
-        'score': score_np.tolist(),
-        'ra': ra_np.tolist(),
-        'rb': rb_np.tolist(),
-        'rr': rr_np.tolist(),
-        'sum_true': sum_true.tolist(),
-        'loss': loss.tolist(),
-        'true_label': true_labels[i],
-        'pred_label': pred_label
-    }, ignore_index=True)
+    # Create a new DataFrame for the current result
+    new_data = pd.DataFrame({
+        'texta': [texta],
+        'textb': [textb],
+        'A_sum': [A_sum.tolist()],
+        'score': [score_np.tolist()],
+        'ra': [ra_np.tolist()],
+        'rb': [rb_np.tolist()],
+        'rr': [rr_np.tolist()],
+        'sum_true': [sum_true.tolist()],
+        'loss': [loss.tolist()],
+        'true_label': [true_labels[i]],
+        'pred_label': [pred_label]
+    })
+
+    # Concatenate the new data with the existing DataFrame
+    results_df = pd.concat([results_df, new_data], ignore_index=True)
+
 
     # Save DataFrame to Excel after each iteration
     results_df.to_excel(excel_path, index=False)
