@@ -12,7 +12,7 @@ class BilinearLoss(nn.Module):
     def __init__(
         self,
         model: SentenceTransformer,
-        num_labels: int,
+        num_labels: int = 3,
         loss_fct: Callable = nn.CrossEntropyLoss(),
         sentence_model_name: str = None,
         normalization : str= "",
@@ -34,10 +34,12 @@ class BilinearLoss(nn.Module):
         self.embedding_dim = model.get_sentence_embedding_dimension()
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.Us = nn.ParameterList([nn.Parameter(torch.randn(self.embedding_dim, self.embedding_dim).to(self.device)) for _ in range(num_labels)]).to(self.device)
+        self.Us = nn.ParameterList([nn.Parameter(torch.randn(self.embedding_dim, self.embedding_dim).to(self.device)) for _ in range(num_labels)])
         logger.info("Bilinear loss: #Labels: {}".format(num_labels))
         
         self.loss_fct = loss_fct
+        
+        self.Mtest = False
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor = None):
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
@@ -75,14 +77,22 @@ class BilinearLoss(nn.Module):
         return e1, e2
 
     def get_sim_mat(self):
+        if self.Mtest:
+            return torch.stack( [ U  for U in self.Us] )# W = W.T
+            
         if self.sim_method == "ADD":
             Ms = torch.stack( [(U + U.t())/2 for U in self.Us] )# W = W.T
         elif self.sim_method == "MUL":
-            Ms =  torch.stack( [ U @ U.t() for U in self.Us] )# W = W.T
+            Ms = torch.stack( [ U @ U.t() for U in self.Us] )# W = W.T
         else:
-            Ms =  self.Us
+            Ms = torch.stack( [ U for U in self.Us] )# W = W.T
 
         return Ms
+
+    def set_sim_mat(self, sim_mat):
+        self.Us = sim_mat 
+        self.Mtest = True
+  
 
     def save(self, path):
        torch.save({
@@ -102,7 +112,19 @@ class BilinearLoss(nn.Module):
         model = SentenceTransformer.load(checkpoint['sentence_model_name'])
         model.load_state_dict(checkpoint['model_state_dict'])
         sim_mat = checkpoint['sim_mat']
-        return cls(model, sim_mat)
+        
+        modelbili = cls(
+            model = model,
+            num_labels = checkpoint['num_labels'],
+            loss_fct = checkpoint['loss_fct'],
+            sentence_model_name = checkpoint['sentence_model_name'],
+            normalization = checkpoint['normalization'],
+            sim_method = checkpoint['sim_method'],
+        )
+        
+        modelbili.set_sim_mat(sim_mat)
+        
+        return modelbili
     
         model_dict = torch.load(model_path)
 

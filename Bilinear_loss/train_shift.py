@@ -13,21 +13,24 @@ from datetime import datetime
 
 # training config
 # model_name = 'sentence-transformers/all-mpnet-base-v2'
-model_name ='roberta-base'
+model_name = 'sentence-transformers/all-distilroberta-v1'
 #model_save_path = '../xs_models/droberta_bilinear'
 model_save_path = (
-    "output/finetune_add_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    "output/finetune_nsym_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
-model_path = 'data\\training_add2_nli_roberta-base-2024-06-05_14-35-49_L0-9\eval\epoch9_step-1_sim_evaluation_add_matrix.pth'
-train_batch_size = 16 
+
+#model_path = "input/training_add2_nli_sentence-transformers-all-mpnet-base-v2-2024-06-13_18-43-38/eval/epoch4_step-1_sim_evaluation_add_matrix.pth"
+model_path = "input/training_nsym_nli_sentence-transformers-all-distilroberta-v1-2024-07-15_11-37-39/eval/epoch4_step-1_sim_evaluation_nsym_matrix.pth"
+train_batch_size = 160
 num_epochs = 5
+
 
 if not os.path.exists(model_save_path):
     os.makedirs(model_save_path)
 
 sentence_transformer_model = SentenceTransformer(model_name)
 # model
-bilinear_loss = BilinearLoss.load(model_path, sentence_transformer_model)
+bilinear_loss = BilinearLoss.load(model_path)
 
 transformer_layer = bilinear_loss.model[0]
 save_path =  'transformer_layerxx'
@@ -55,7 +58,7 @@ train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batc
 evaluator = BilinearEvaluator.from_input_examples(
     dev_samples, 
     batch_size=train_batch_size, 
-    name="add-shift", 
+    name="nsym-shift", 
     similarity=bilinear_loss
 )
 
@@ -73,6 +76,10 @@ model.fit(train_objectives=[(train_dataloader, bilinear_loss)],
           )
 
 # loading model checkpoint and running evaluation
-model = XSTransformer(model_save_path)
+model = XSTransformer(model_save_path,    
+    device='cuda',
+    sim_mat= bilinear_loss.get_sim_mat(),
+    sim_measure= "bilinear",
+    )
 test_evaluator = BilinearEvaluator.from_input_examples(test_samples, name='nil-test-shift')
 test_evaluator(model, output_path=model_save_path)
