@@ -48,7 +48,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 # Read the dataset
-train_batch_size = 8
+train_batch_size = 32
 
 
 model_save_path = (
@@ -96,7 +96,7 @@ with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = MLPLoss(
     model=model, 
-    sentence_embedding_dimension=model.get_sentence_embedding_dimension(), 
+    sentence_model_name="mlp", 
     num_labels=len(label2int),
     device = device,
 )
@@ -148,8 +148,6 @@ model.fit(
     evaluation_steps=2000,
     warmup_steps=warmup_steps,
     output_path=model_save_path,
-    checkpoint_path=checkpoint_save_path,
-    checkpoint_save_steps= 2000,
 )
 
 

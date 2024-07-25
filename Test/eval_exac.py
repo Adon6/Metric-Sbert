@@ -9,13 +9,13 @@ import torch
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 from Bilinear_loss_old.BilinearLoss import BilinearLoss
-from xsbert.models import XSRoberta, ReferenceTransformer
+from xsbert.models import XSRoberta, ShiftingReferenceTransformer
 from xsbert.utils import plot_attributions_multi
 
 # Load model
-model_path = "data/training_add2_nli_sentence-transformers-all-distilroberta-v1-2024-06-10_14-52-37+sD/eval/epoch9_step-1_sim_evaluation_add_matrix.pth"
+model_path = "data/finetune_epoch9_add_nli_sentence-transformers-all-distilroberta-v1-2024-07-22_15-11-09+sDe9/eval/epoch4_step-1_sim_evaluation_add-shift_matrix.pth"
 sentence_transformer_model = SentenceTransformer('sentence-transformers/all-distilroberta-v1')
-model_name = "t+D9_"
+model_name = "f+D9"
 bilinear_loss = BilinearLoss.load(model_path, sentence_transformer_model)
 
 # Path for the Excel file
@@ -31,7 +31,7 @@ transformer_layer = bilinear_loss.model[0]
 # Save transformer layer to file
 save_path = 'transformer_layerzz'
 transformer_layer.save(save_path)
-transformer = ReferenceTransformer.load(save_path)
+transformer = ShiftingReferenceTransformer.load(save_path)
 
 pooling = bilinear_loss.model[1]
 test_sbert = XSRoberta(modules=[transformer, pooling], sim_measure="bilinear", sim_mat=bilinear_loss.get_sim_mat())

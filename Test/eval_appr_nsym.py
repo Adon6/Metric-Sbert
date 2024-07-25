@@ -8,15 +8,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import torch
 import pandas as pd
 from sentence_transformers import SentenceTransformer
-from Bilinear_loss_old.BilinearLoss import BilinearLoss
-from xsbert.models import XSRoberta, ReferenceTransformer
+from Bilinear_loss.BilinearLoss import BilinearLoss
+from xsbert.models import XSMPNet, ReferenceTransformer
 from xsbert.utils import plot_attributions_multi
 
 # Load model
-model_path = "data/training_add2_nli_sentence-transformers-all-distilroberta-v1-2024-06-10_14-52-37+sD/eval/epoch9_step-1_sim_evaluation_add_matrix.pth"
-sentence_transformer_model = SentenceTransformer('sentence-transformers/all-distilroberta-v1')
-model_name = "t+D9_"
-bilinear_loss = BilinearLoss.load(model_path, sentence_transformer_model)
+model_path = "data/training_nsym_nli_sentence-transformers-all-mpnet-base-v2-2024-07-22_18-15-53/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
+sentence_transformer_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
+model_name = "toM9"
+bilinear_loss = BilinearLoss.load(model_path)
 
 # Path for the Excel file
 excel_path = f'figures/res_{model_name}.xlsx'
@@ -29,12 +29,13 @@ results_df = pd.DataFrame(columns=['texta', 'textb', 'A_sum', 'score', 'ra', 'rb
 transformer_layer = bilinear_loss.model[0]
 
 # Save transformer layer to file
-save_path = 'transformer_layerzz'
+save_path = 'transformer_layer22'
 transformer_layer.save(save_path)
 transformer = ReferenceTransformer.load(save_path)
+transformer.to(torch.device('cuda'))
 
 pooling = bilinear_loss.model[1]
-test_sbert = XSRoberta(modules=[transformer, pooling], sim_measure="bilinear", sim_mat=bilinear_loss.get_sim_mat())
+test_sbert = XSMPNet(modules=[transformer, pooling], sim_measure="bilinear", sim_mat=bilinear_loss.get_sim_mat())
 
 print("Load model successfully.")
 print(test_sbert)
@@ -42,7 +43,7 @@ print("Start to calculate.")
 
 test_sbert.to(torch.device('cuda'))
 test_sbert.reset_attribution()
-test_sbert.init_attribution_to_layer(idx=5, N_steps=100)
+test_sbert.init_attribution_to_layer(idx=11, N_steps=100)
 
 # Multiple pairs of text
 text_pairs = [

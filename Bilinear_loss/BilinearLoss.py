@@ -90,7 +90,7 @@ class BilinearLoss(nn.Module):
         return Ms
 
     def set_sim_mat(self, sim_mat):
-        self.Us = sim_mat 
+        self.Us = sim_mat.to(self.device)
         self.Mtest = True
   
 

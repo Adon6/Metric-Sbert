@@ -251,6 +251,8 @@ class XSTransformer(SentenceTransformer):
         """
         # comput J
 
+
+
         A = torch.einsum('ij, Dij, Dpq, pq -> iq', da, J_a, J_b, db)
         A = A.detach().cpu()
 
@@ -326,12 +328,14 @@ class XSTransformer(SentenceTransformer):
         if self.sim_mat == None:
             A = torch.einsum('ij, Dij, Djq, pq -> 1ip', da, J_a, J_b, db)
         else:
-            print("da ",da.shape)
-            print("J_a ",J_a.shape)
-            print("self.sim_mat ",self.sim_mat.shape)
-            print("J_b ",J_b.shape)
-            print("db ",db.shape)
+            #print("da ",da.shape)
+            #print("J_a ",J_a.shape)
+            #print("self.sim_mat ",self.sim_mat.shape)
+            #print("J_b ",J_b.shape)
+            #print("db ",db.shape)
 
+            #print(f"device:{da.device}, {J_a.device}, {self.sim_mat.device}, {J_b.device}, {db.device}")
+            
             A = torch.einsum('ij, Dij, LDT, Tpq, pq -> Lip', da, J_a, self.sim_mat, J_b, db) # to check
 
         A = A.detach().cpu()
