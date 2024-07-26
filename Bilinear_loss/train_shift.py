@@ -20,7 +20,7 @@ model_save_path = (
 )
 
 #model_path = "input/training_add2_nli_sentence-transformers-all-mpnet-base-v2-2024-06-13_18-43-38/eval/epoch4_step-1_sim_evaluation_add_matrix.pth"
-model_path = "input/training_nsym_nli_sentence-transformers-all-distilroberta-v1-2024-07-15_11-37-39/eval/epoch4_step-1_sim_evaluation_nsym_matrix.pth"
+model_path = "input/training_nsym_nli_sentence-transformers-all-distilroberta-v1-2024-07-15_11-37-39osD/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
 train_batch_size = 160
 num_epochs = 5
 

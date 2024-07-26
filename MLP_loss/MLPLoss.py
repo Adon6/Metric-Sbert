@@ -12,7 +12,7 @@ class MLPLoss(nn.Module):
     def __init__(
         self,
         model: SentenceTransformer,
-        num_labels: int,
+        num_labels: int = 3,
         loss_fct: Callable = nn.CrossEntropyLoss(),
         sentence_model_name: str = None,
         device :Optional[str] = None,
@@ -89,7 +89,17 @@ class MLPLoss(nn.Module):
 
     @classmethod
     def load(cls, path):
+      
         checkpoint = torch.load(path)
         model = SentenceTransformer.load(checkpoint['sentence_model_name'])
         model.load_state_dict(checkpoint['model_state_dict'])
-        return cls(model)
+                
+        modelmlp = cls(
+            model = model,
+            num_labels = checkpoint['num_labels'],
+            loss_fct = checkpoint['loss_fct'],
+            sentence_model_name = checkpoint['sentence_model_name'],
+        )
+          
+        return modelmlp
+        

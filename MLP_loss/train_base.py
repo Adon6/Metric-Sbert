@@ -48,7 +48,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 # Read the dataset
-train_batch_size = 32
+train_batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
 
 
 model_save_path = (

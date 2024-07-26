@@ -90,7 +90,8 @@ class BilinearLoss(nn.Module):
         return Ms
 
     def set_sim_mat(self, sim_mat):
-        self.Us = sim_mat.to(self.device)
+        #self.Us = torch.nn.Parameter(sim_mat.to(self.device))
+        self.Us = sim_mat
         self.Mtest = True
   
 
@@ -126,24 +127,3 @@ class BilinearLoss(nn.Module):
         
         return modelbili
     
-        model_dict = torch.load(model_path)
-
-        #print(model_dict.keys())
-        #print(model_dict["metadata"])
-        
-        metadata = model_dict.pop('metadata')
-        model_type = metadata.get('model_type',"ADD")
-        normalized = metadata.get('normalized', False)
-        embedding_dimension = metadata.get('embedding_dimension',768)
-
-        bilinear_loss = BilinearLoss(
-            model=sentence_transformer_model,
-            sentence_embedding_dimension= embedding_dimension,  # 根据你的模型进行调整
-            num_labels= sum(1 for key in model_dict if key.startswith("Us")), 
-            normalized=normalized,
-            ADD= True if model_type == "ADD" else False 
-        )
-
-        bilinear_loss.load_state_dict(model_dict)
-
-        return bilinear_loss
