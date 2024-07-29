@@ -127,6 +127,7 @@ class MLPEvaluator(SentenceEvaluator):
         f1 = f1_score(self.outputlabel, predicted_label, average='macro')
 
         if output_path is not None and self.write_csv:
+            os.makedirs(output_path, exist_ok=True)
             csv_path = os.path.join(output_path, self.csv_file)
             output_file_exists = os.path.isfile(csv_path)
             with open(csv_path, newline="", mode="a" if output_file_exists else "w", encoding="utf-8") as f:
@@ -146,7 +147,7 @@ class MLPEvaluator(SentenceEvaluator):
                 )
 
             # Save matrix
-            if steps < 0 and epoch in [0,3,4,5,9]:
+            if steps < 0 and epoch in [4,9]:
                 evaluator_path = os.path.join(
                     output_path, 
                     "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file

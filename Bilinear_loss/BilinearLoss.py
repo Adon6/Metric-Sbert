@@ -38,18 +38,14 @@ class BilinearLoss(nn.Module):
         logger.info("Bilinear loss: #Labels: {}".format(num_labels))
         
         self.loss_fct = loss_fct
-        
-        self.Mtest = False
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor = None):
         reps = [self.model(sentence_feature)["sentence_embedding"] for sentence_feature in sentence_features]
         e1, e2 = reps
         e1, e2 = Tensor(e1).to(self.device), Tensor(e2).to(self.device)
-        self.Us = self.Us.to(self.device)
-    
         e1, e2 = self.get_norm_emb(e1, e2)
-
-        Ms = self.get_sim_mat()
+    
+        Ms = self.get_sim_mat(device = self.device)
         output = torch.stack([torch.sum(e1 * (e2 @ M) , dim=1) for M in Ms], dim= 1 )
 
         if labels is not None:
@@ -61,11 +57,11 @@ class BilinearLoss(nn.Module):
     def sim(self, e1, e2):
         eval_device = 'cpu'
         e1, e2 = Tensor(e1).to(eval_device), Tensor(e2).to(eval_device)
-        self.Us = self.Us.to(eval_device)
-
         e1, e2 = self.get_norm_emb(e1, e2)
 
-        Ms = self.get_sim_mat()
+        self.Us = self.Us.to(eval_device)
+        Ms = self.get_sim_mat(device = eval_device)
+
         output = torch.stack([torch.sum(e1 * (e2 @ M) , dim=1) for M in Ms], dim= 1 )
 
         return output
@@ -76,10 +72,10 @@ class BilinearLoss(nn.Module):
             e2 = nn.functional.normalize(e2, p=2)# example normalization
         return e1, e2
 
-    def get_sim_mat(self):
-        if self.Mtest:
-            return torch.stack( [ U  for U in self.Us] )# W = W.T
-            
+    def get_sim_mat(self, device = None):
+        if not device:
+            device = self.device
+             
         if self.sim_method == "ADD":
             Ms = torch.stack( [(U + U.t())/2 for U in self.Us] )# W = W.T
         elif self.sim_method == "MUL":
@@ -87,43 +83,37 @@ class BilinearLoss(nn.Module):
         else:
             Ms = torch.stack( [ U for U in self.Us] )# W = W.T
 
-        return Ms
-
-    def set_sim_mat(self, sim_mat):
-        #self.Us = torch.nn.Parameter(sim_mat.to(self.device))
-        self.Us = sim_mat
-        self.Mtest = True
-  
+        return Ms.to(device)
+ 
 
     def save(self, path):
        torch.save({
-            'model_state_dict': self.model.state_dict(),
-            'sim_mat': self.get_sim_mat(),
-            'sim_method': self.sim_method,
-            'normalization': self.normalization,
-            'num_labels': self.num_labels,
-            'embedding_dim': self.embedding_dim,
-            'loss_fct' : self.loss_fct,
-            'sentence_model_name' : self.sentence_model_name
+            'model_state_dict': self.state_dict(),
+            'metadata': {
+                'sentence_model_name' : self.sentence_model_name,
+                'sim_method': self.sim_method,
+                'normalization': self.normalization,
+                'num_labels': self.num_labels,
+                'embedding_dim': self.embedding_dim,
+                'loss_fct' : self.loss_fct,
+            },
         }, path)
 
     @classmethod
     def load(cls, path):
         checkpoint = torch.load(path)
-        model = SentenceTransformer.load(checkpoint['sentence_model_name'])
-        model.load_state_dict(checkpoint['model_state_dict'])
-        sim_mat = checkpoint['sim_mat']
+        metadata = checkpoint.pop("metadata")
+        smodel = SentenceTransformer.load(metadata['sentence_model_name'])
         
         modelbili = cls(
-            model = model,
-            num_labels = checkpoint['num_labels'],
-            loss_fct = checkpoint['loss_fct'],
-            sentence_model_name = checkpoint['sentence_model_name'],
-            normalization = checkpoint['normalization'],
-            sim_method = checkpoint['sim_method'],
+            model = smodel,
+            num_labels = metadata['num_labels'],
+            loss_fct = metadata['loss_fct'],
+            sentence_model_name = metadata['sentence_model_name'],
+            normalization = metadata['normalization'],
+            sim_method = metadata['sim_method'],
         )
         
-        modelbili.set_sim_mat(sim_mat)
+        modelbili.load_state_dict(checkpoint['model_state_dict'])
         
         return modelbili
-    

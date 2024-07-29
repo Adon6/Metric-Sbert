@@ -5,7 +5,7 @@ from os import PathLike
 import wget
 import sys
 from torch import cosine_similarity, dot, Tensor, einsum
-#from . import XSMPNet, XSRoberta
+from . import XSMPNet, XSRoberta
 
 
 def load_checkpoint(model_name: str):

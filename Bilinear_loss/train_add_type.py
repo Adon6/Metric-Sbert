@@ -1,13 +1,9 @@
 """
-The system trains BERT (or any other transformer model like RoBERTa, DistilBERT etc.) on the SNLI + MultiNLI (AllNLI) dataset
-with softmax loss function. At every 1000 training steps, the model is evaluated on the
-STS benchmark dataset
-
 Usage:
-python training_nli.py
+python train_add_type.py
 
 OR
-python training_nli.py pretrained_transformer_model_name
+python train_add_type pretrained_transformer_model_name batch_size
 """
 import torch
 from torch.utils.data import DataLoader
@@ -18,12 +14,12 @@ import logging
 from datetime import datetime
 import sys
 import os
-import gzip
-import csv
 from BilinearLoss import BilinearLoss
 from BilinearEvaluator import BilinearEvaluator
 
-TEST = True
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils import  load_nil_data
+TEST = False
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(
@@ -36,26 +32,17 @@ nli_dataset_path = "data/AllNLI.tsv.gz"
 if not os.path.exists(nli_dataset_path):
     util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
 
-#sts_dataset_path = "data/stsbenchmark.tsv.gz"
-#if not os.path.exists(sts_dataset_path):
-#    util.http_get("https://sbert.net/datasets/stsbenchmark.tsv.gz", sts_dataset_path)
-
-
 # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
 model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
-device = "cuda:2" if torch.cuda.is_available() else "cpu"
-
-
-# Read the dataset
 train_batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
-
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 model_save_path = (
-    "output/training_add_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    "output/+_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
 checkpoint_save_path = (
-    "output/training_add_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
+    "output/+_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
 )
 
 # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
@@ -77,20 +64,11 @@ model = SentenceTransformer(
 
 # Read the AllNLI.tsv.gz file and create the training dataset
 logging.info("Read AllNLI train dataset")
-
 label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
-train_samples = []
-count = 0
+train_samples, dev_samples, test_samples = load_nil_data(nli_dataset_path)
+if TEST:
+    train_samples = train_samples[:1000] 
 
-with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row["split"] == "train":
-            label_id = label2int[row["label"]]
-            train_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
-            count += 1
-            if count > 200 and TEST:
-                break
 
 train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 train_loss = BilinearLoss(
@@ -101,37 +79,12 @@ train_loss = BilinearLoss(
     device = device,
 )
 
-"""
-# Read STSbenchmark dataset and use it as development set
-logging.info("Read STSbenchmark dev dataset")
-dev_samples = []
-with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row["split"] == "dev":
-            score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
-            dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
-
-dev_evaluator = EmbeddingSimilarityEvaluator.from_input_examples(
-    dev_samples, batch_size=train_batch_size, name="sts-dev"
-)
-"""
-label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
-dev_samples = []
-with gzip.open(nli_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row["split"] == "dev":
-            label_id = label2int[row["label"]]
-            dev_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=label_id))
-
 dev_evaluator = BilinearEvaluator.from_input_examples(
     dev_samples, 
     batch_size=train_batch_size, 
     name="add", 
     similarity=train_loss
 )
-
 
 # Configure the training
 num_epochs = 10
@@ -155,22 +108,14 @@ model.fit(
 
 ##############################################################################
 #
-# Load the stored model and evaluate its performance on STS benchmark dataset
+# Load the stored model and evaluate
 #
 ##############################################################################
 
-"""
-test_samples = []
-with gzip.open(sts_dataset_path, "rt", encoding="utf8") as fIn:
-    reader = csv.DictReader(fIn, delimiter="\t", quoting=csv.QUOTE_NONE)
-    for row in reader:
-        if row["split"] == "test":
-            score = float(row["score"]) / 5.0  # Normalize score to range 0 ... 1
-            test_samples.append(InputExample(texts=[row["sentence1"], row["sentence2"]], label=score))
+test_model = BilinearLoss.load(model_save_path)
 
-model = SentenceTransformer(model_save_path)
 test_evaluator = BilinearEvaluator.from_input_examples(
-    test_samples, batch_size=train_batch_size, name="sts-test"
+    test_samples, 
+    name="test", 
+    similarity=test_model
 )
-test_evaluator(model, output_path=model_save_path)
-"""
