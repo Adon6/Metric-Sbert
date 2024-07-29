@@ -101,7 +101,8 @@ class BilinearEvaluator(SentenceEvaluator):
         else:
             out_txt = ""
 
-        logger.info(f"BilinearEvaluator: Evaluating the model on the {self.name} dataset{out_txt}:")
+        logger.info(f"BilinearEvaluator: Evaluating the model on the {self.name} dataset {out_txt}:")
+        logger.info(f"output path: {output_path}")
 
         with nullcontext():
             embeddings1 = model.encode(
@@ -147,7 +148,7 @@ class BilinearEvaluator(SentenceEvaluator):
                 )
 
             # Save matrix
-            if steps < 0:
+            if steps < 0 and epoch in [4,9]:
                 evaluator_path = os.path.join(
                     output_path, 
                     "epoch"+str(epoch) +"_step" +str(steps) +"_" + self.evaluator_file

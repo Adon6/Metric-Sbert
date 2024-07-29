@@ -59,7 +59,7 @@ class BilinearLoss(nn.Module):
         e1, e2 = Tensor(e1).to(eval_device), Tensor(e2).to(eval_device)
         e1, e2 = self.get_norm_emb(e1, e2)
 
-        self.Us = self.Us.to(eval_device)
+        #self.Us = self.Us.to(eval_device)
         Ms = self.get_sim_mat(device = eval_device)
 
         output = torch.stack([torch.sum(e1 * (e2 @ M) , dim=1) for M in Ms], dim= 1 )
