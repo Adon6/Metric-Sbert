@@ -9,13 +9,13 @@ import torch
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 from Bilinear_loss.BilinearLoss import BilinearLoss
-from xsbert.models import XSMPNet, ReferenceTransformer
+from xsbert.models import XSRoberta, XSMPNet, ReferenceTransformer
 from xsbert.utils import plot_attributions_multi
 
 # Load model
-model_path = "data/training_nsym_nli_sentence-transformers-all-mpnet-base-v2-2024-07-22_18-15-53/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
-sentence_transformer_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
-model_name = "toM9"
+model_path = "input/training_nsym_nli_sentence-transformers-all-distilroberta-v1-2024-07-15_11-37-39osD/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
+
+model_name = "toR9"
 bilinear_loss = BilinearLoss.load(model_path)
 
 # Path for the Excel file
@@ -35,7 +35,7 @@ transformer = ReferenceTransformer.load(save_path)
 transformer.to(torch.device('cuda'))
 
 pooling = bilinear_loss.model[1]
-test_sbert = XSMPNet(modules=[transformer, pooling], sim_measure="bilinear", sim_mat=bilinear_loss.get_sim_mat())
+test_sbert = XSRoberta(modules=[transformer, pooling], sim_measure="bilinear", sim_mat=bilinear_loss.get_sim_mat())
 
 print("Load model successfully.")
 print(test_sbert)
@@ -43,7 +43,7 @@ print("Start to calculate.")
 
 test_sbert.to(torch.device('cuda'))
 test_sbert.reset_attribution()
-test_sbert.init_attribution_to_layer(idx=11, N_steps=100)
+test_sbert.init_attribution_to_layer(idx=5, N_steps=100)
 
 # Multiple pairs of text
 text_pairs = [

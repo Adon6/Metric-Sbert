@@ -12,16 +12,16 @@ from datetime import datetime
 
 
 # training config
-# model_name = 'sentence-transformers/all-mpnet-base-v2'
-model_name = 'sentence-transformers/all-distilroberta-v1'
+model_name = 'sentence-transformers/all-mpnet-base-v2'
+# model_name = 'sentence-transformers/all-distilroberta-v1'
 #model_save_path = '../xs_models/droberta_bilinear'
 model_save_path = (
     "output/finetune_nsym_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
 #model_path = "input/training_add2_nli_sentence-transformers-all-mpnet-base-v2-2024-06-13_18-43-38/eval/epoch4_step-1_sim_evaluation_add_matrix.pth"
-model_path = "input/training_nsym_nli_sentence-transformers-all-distilroberta-v1-2024-07-15_11-37-39osD/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
-train_batch_size = 160
+model_path = "input/training_nsym_nli_sentence-transformers-all-mpnet-base-v2-2024-07-22_18-15-53/eval/epoch4_step-1_sim_evaluation_nsym_matrix.pth"
+train_batch_size = 64
 num_epochs = 5
 
 

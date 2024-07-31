@@ -13,9 +13,9 @@ from xsbert.models import XSMPNet, ShiftingReferenceTransformer
 from xsbert.utils import plot_attributions_multi
 
 # Load model
-model_path = "data/training_nsym_nli_sentence-transformers-all-mpnet-base-v2-2024-07-22_18-15-53/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
-sentence_transformer_model = SentenceTransformer('sentence-transformers/all-mpnet-base-v2')
-model_name = "toM9"
+model_path = "data/finetune_epoch9_nsym_nli_sentence-transformers-all-mpnet-base-v2-2024-07-25_12-27-14/eval/epoch4_step-1_sim_evaluation_nsym-shift_matrix.pth"
+
+model_name = "foM9"
 bilinear_loss = BilinearLoss.load(model_path)
 
 # Path for the Excel file

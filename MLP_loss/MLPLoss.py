@@ -80,7 +80,7 @@ class MLPLoss(nn.Module):
 
     def save(self, path):
        torch.save({
-            'model_state_dict': self.model.state_dict(),
+            'model_state_dict': self.state_dict(),
             'num_labels': self.num_labels,
             'embedding_dim': self.embedding_dim,
             'loss_fct' : self.loss_fct,
@@ -92,7 +92,7 @@ class MLPLoss(nn.Module):
       
         checkpoint = torch.load(path)
         model = SentenceTransformer.load(checkpoint['sentence_model_name'])
-        model.load_state_dict(checkpoint['model_state_dict'])
+
                 
         modelmlp = cls(
             model = model,
@@ -100,6 +100,9 @@ class MLPLoss(nn.Module):
             loss_fct = checkpoint['loss_fct'],
             sentence_model_name = checkpoint['sentence_model_name'],
         )
-          
+        
+        model_dic = checkpoint.pop('model_state_dict')
+        modelmlp.load_state_dict(model_dic)
+        
         return modelmlp
         

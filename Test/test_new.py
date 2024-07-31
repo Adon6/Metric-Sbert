@@ -13,8 +13,8 @@ import csv
 # Add the parent directory to the sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from Bilinear_loss_old.BilinearLoss import BilinearLoss
-from Bilinear_loss_old.BilinearEvaluator import BilinearEvaluator
+from Bilinear_loss.BilinearLoss import BilinearLoss
+from Bilinear_loss.BilinearEvaluator import BilinearEvaluator
 
 
 #### Just some code to print debug information to stdout
@@ -25,35 +25,18 @@ logging.basicConfig(
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 model_name ='bert-base-uncased'
-model_path = "input/training_add2_nli_bert-base-uncased-2024-06-04_18-01-47_L0-9+B/eval/epoch9_step-1_sim_evaluation_add_matrix.pth"
-
+model_path = "input/training_nsym_nli_bert-base-uncased-2024-07-15_18-16-11/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
 model_save_path = (
-    "test/test_mul_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    "test/tn_nsym_nli_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
 
-# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
-word_embedding_model = models.Transformer(model_name)
-
-# Apply mean pooling to get one fixed sized sentence vector
-pooling_model = models.Pooling(
-    word_embedding_model.get_word_embedding_dimension(),
-    pooling_mode_mean_tokens=True,
-    pooling_mode_cls_token=False,
-    pooling_mode_max_tokens=False,
-)
-
-sentence_transformer_model = SentenceTransformer(
-    modules=[word_embedding_model, pooling_model],
-    device = device,
-    )
-
 # model
-test_model = BilinearLoss.load(model_path, sentence_transformer_model)
+test_model = BilinearLoss.load(model_path)
 
 test_batchsize = 64
 
-# Check if dataset exists. If not, download and extract  it
+# Check if dataset exists. If not, download and extract it
 nli_dataset_path = "data/AllNLI.tsv.gz"
 if not os.path.exists(nli_dataset_path):
     util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
@@ -80,4 +63,4 @@ test_evaluator = BilinearEvaluator.from_input_examples(
     similarity=test_model
 )
 
-test_evaluator(sentence_transformer_model, output_path=model_save_path, steps = 10)
+test_evaluator(test_model.model, output_path=model_save_path, steps = 10)
