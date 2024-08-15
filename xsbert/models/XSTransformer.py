@@ -37,7 +37,8 @@ class XSTransformer(SentenceTransformer):
                          revision=revision,
                          token=token,
                          use_auth_token=use_auth_token,
-                         truncate_dim=truncate_dim)
+                         #truncate_dim=truncate_dim,
+                         )
         
         # Set the additional attributes
         self.sim_measure = sim_measure

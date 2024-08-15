@@ -4,6 +4,8 @@ python train_add_type.py
 
 OR
 python train_add_type pretrained_transformer_model_name batch_size
+
+torchrun --nproc_per_node=4 train_add_type.py pretrained_transformer_model_name batch_size
 """
 def main():
     import torch
@@ -36,14 +38,10 @@ def main():
     # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
     model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
     train_batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = sys.argv[3] if len(sys.argv) > 3 else ("cuda" if torch.cuda.is_available() else "cpu")
 
     model_save_path = (
-        "output/+_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    )
-
-    checkpoint_save_path = (
-        "output/+_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
+        "output/+" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     )
 
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
@@ -77,6 +75,7 @@ def main():
         num_labels=len(label2int),
         sentence_model_name = model_name,
         sim_method = "ADD",
+        #normalization="norm",
         device = device,
     )
 

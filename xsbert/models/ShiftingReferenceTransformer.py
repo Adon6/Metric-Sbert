@@ -11,7 +11,7 @@ class ShiftingReferenceTransformer(models.Transformer):
 
         input_ids = features['input_ids']
         attention_mask = features['attention_mask']
-        if "token_typs_ids" in features.keys():
+        if "token_type_ids" in features.keys():
             token_type_ids = features['token_type_ids']
 
         s = input_ids.shape[1]
@@ -21,9 +21,10 @@ class ShiftingReferenceTransformer(models.Transformer):
         if input_ids.shape[0] > 1:
             ref_att = torch.ones((1, s)).int().to(device)
             features['attention_mask'] = torch.cat([attention_mask, ref_att], dim=0)
-            if "token_typs_ids" in features.keys():
+            if "token_type_ids" in features.keys():
                 ref_token = torch.zeros((1, s)).int().to(device)
                 features['token_type_ids'] = torch.cat([token_type_ids, ref_token], dim=0)
+
 
         features = super().forward(features)
 

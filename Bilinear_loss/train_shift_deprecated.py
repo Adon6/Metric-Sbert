@@ -1,5 +1,6 @@
 from torch.utils.data import DataLoader
 import math
+import torch
 from datetime import datetime
 from sentence_transformers import SentenceTransformer, models, util, losses, InputExample
 import os
@@ -10,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from BilinearLoss import BilinearLoss
 from BilinearEvaluator import BilinearEvaluator
 
-from xsbert.models import ShiftingReferenceTransformer, ReferenceTransformer, XSTransformer, DotSimilarityLoss
+from xsbert.models import ShiftingReferenceTransformer, XSTransformer
 from xsbert.utils import load_nil_data
 
 
@@ -19,32 +20,49 @@ from xsbert.utils import load_nil_data
 model_name = 'sentence-transformers/all-distilroberta-v1'
 #model_save_path = '../xs_models/droberta_bilinear'
 model_save_path = (
-    "output/fo" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    "output/f+s" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )
 
+device = "cuda:1" if torch.cuda.is_available() else "cpu"
+
 #model_path = "input/training_add2_nli_sentence-transformers-all-mpnet-base-v2-2024-06-13_18-43-38/eval/epoch4_step-1_sim_evaluation_add_matrix.pth"
-model_path = "input/training_nsym_nli_sentence-transformers-all-distilroberta-v1-2024-07-15_11-37-39osD/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
+#model_path = "input/training_nsym_nli_sentence-transformers-all-distilroberta-v1-2024-07-15_11-37-39osD/eval/epoch9_step-1_sim_evaluation_nsym_matrix.pth"
+
 train_batch_size = 160
-num_epochs = 5
+num_epochs = 10
 
 
 if not os.path.exists(model_save_path):
     os.makedirs(model_save_path)
 
-# model
-bilinear_loss = BilinearLoss.load(model_path)
+# Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
+word_embedding_model = models.Transformer(model_name)
 
-transformer_layer = bilinear_loss.model[0]
-save_path =  'transformer_layerxx'
-transformer_layer.save(save_path)
-embedding_model = ShiftingReferenceTransformer(save_path)
+# Apply mean pooling to get one fixed sized sentence vector
+pooling_model = models.Pooling(
+    word_embedding_model.get_word_embedding_dimension(),
+    pooling_mode_mean_tokens=True,
+    pooling_mode_cls_token=False,
+    pooling_mode_max_tokens=False,
+)
 
-pooling_layer = bilinear_loss.model[1]
+modelsbert = SentenceTransformer(
+    modules=[word_embedding_model, pooling_model],
+    device = device,
+    )
 
+bilinear_loss = BilinearLoss(
+    model=modelsbert, 
+    num_labels=3,
+    sentence_model_name = model_name,
+    sim_method = "ADD",
+    device = device,
+)
+ShiftingReferenceTransformer
 #model = XSRoberta(modules=[transformer, pooling], sim_measure= "bilinear", sim_mat= bilinear_loss.get_sim_mat())
 model = XSTransformer(
-    modules=[embedding_model, pooling_layer],
-    device='cuda',
+    modules=[word_embedding_model, pooling_model],
+    device=device,
     sim_mat= bilinear_loss.get_sim_mat(),
     sim_measure= "bilinear",
     )
@@ -64,7 +82,6 @@ evaluator = BilinearEvaluator.from_input_examples(
     similarity=bilinear_loss
 )
 
-
 # training
 # If you want to train a model with a dot-product instead of cosine as a similarity-measure
 # use the loss below instead.
@@ -79,7 +96,7 @@ model.fit(train_objectives=[(train_dataloader, bilinear_loss)],
 
 # loading model checkpoint and running evaluation
 model = XSTransformer(model_save_path,    
-    device='cuda',
+    device=device,
     sim_mat= bilinear_loss.get_sim_mat(),
     sim_measure= "bilinear",
     )

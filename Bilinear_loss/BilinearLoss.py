@@ -35,6 +35,10 @@ class BilinearLoss(nn.Module):
         self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
 
         self.Us = nn.ParameterList([nn.Parameter(torch.randn(self.embedding_dim, self.embedding_dim).to(self.device)) for _ in range(num_labels)])
+        
+        # eye initialize
+        #self.Us = nn.ParameterList([nn.Parameter((torch.eye(self.embedding_dim).to(self.device) + torch.randn(self.embedding_dim, self.embedding_dim).to(self.device) * 0.001)) for _ in range(num_labels)])
+        
         logger.info("Bilinear loss: #Labels: {}".format(num_labels))
         
         self.loss_fct = loss_fct

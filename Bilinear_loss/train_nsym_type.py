@@ -23,7 +23,7 @@ def main():
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
     from utils import  load_nil_data
 
-    TEST = True
+    TEST = False
 
     #### Just some code to print debug information to stdout
     logging.basicConfig(
@@ -38,19 +38,12 @@ def main():
 
     # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
     model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
-
-    # Read the dataset
-    train_batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 8
+    train_batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
+    device = sys.argv[3] if len(sys.argv) > 3 else ("cuda" if torch.cuda.is_available() else "cpu")
 
 
     model_save_path = (
         "output/o_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    )
-
-    checkpoint_save_path = (
-        "output/o_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + "/checkpoint"
     )
 
     # Use Huggingface/transformers model (like BERT, RoBERTa, XLNet, XLM-R) for mapping tokens to embeddings
@@ -85,6 +78,7 @@ def main():
         num_labels=len(label2int),
         sentence_model_name = model_name,
         sim_method = "NSYM",
+        #normalization="norm",
         device = device,
     )
 
@@ -96,7 +90,7 @@ def main():
     )
 
     # Configure the training
-    num_epochs = 5
+    num_epochs = 10
 
     warmup_steps = math.ceil(len(train_dataloader) * num_epochs * 0.1)  # 10% of train data for warm-up
     logging.info("Warmup-steps: {}".format(warmup_steps))
@@ -107,7 +101,7 @@ def main():
         train_objectives=[(train_dataloader, train_loss)],
         evaluator=dev_evaluator,
         epochs=num_epochs,
-        evaluation_steps=200,
+        evaluation_steps=2000 ,
         warmup_steps=warmup_steps,
         output_path=model_save_path,
         #checkpoint_path=checkpoint_save_path,

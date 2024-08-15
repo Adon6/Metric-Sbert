@@ -37,7 +37,7 @@ def main():
     # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
     model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
     train_batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = sys.argv[3] if len(sys.argv) > 3 else ("cuda" if torch.cuda.is_available() else "cpu")
 
 
     model_save_path = (
