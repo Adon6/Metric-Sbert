@@ -24,8 +24,8 @@ logging.basicConfig(
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model_name = 'bert-base-uncased'
-model_path = "input/training_mul_nli_bert-base-uncased-2024-06-03_11-05-25_L0-9/eval/epoch9_step-1_sim_evaluation_mul_matrix.pth"
+model_path = "data/+_sentence-transformers-all-distilroberta-v1-2024-08-15_06-25-33/eval/epoch4_step-1_sim_evaluation_add_matrix.pth"
+model_name = "+"
 model_save_path = (
     "test/t__" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 )

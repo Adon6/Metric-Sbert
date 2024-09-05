@@ -28,7 +28,7 @@ pooling = bilinear_loss.model[1]
 test_sbert = XSRoberta(modules=[transformer, pooling], sim_measure="bilinear", sim_mat=bilinear_loss.get_sim_mat())
 test_sbert.to(torch.device('cuda'))
 test_sbert.reset_attribution()
-test_sbert.init_attribution_to_layer(idx=5, N_steps=30)
+test_sbert.init_attribution_to_layer(idx=5, N_steps=100)
 
 # Define labels
 label2index = {'contradiction': 0, 'entailment': 1, 'neutral': 2}
@@ -41,7 +41,6 @@ def update_relation_contributions(relation_contributions, relation, label, avg_c
     if relation not in relation_contributions[label]:
         relation_contributions[label][relation] = []
     relation_contributions[label][relation].append(avg_contribution)
-
 
 def calculate_tids(text, tokens):
     """

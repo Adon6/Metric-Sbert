@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from Bilinear_loss.BilinearLoss import BilinearLoss
 from Bilinear_loss.BilinearEvaluator import BilinearEvaluator
-from utils import  load_nil_data
+from utils import load_nil_data
 
 
 #### Just some code to print debug information to stdout

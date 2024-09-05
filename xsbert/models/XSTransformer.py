@@ -252,8 +252,6 @@ class XSTransformer(SentenceTransformer):
         """
         # comput J
 
-
-
         A = torch.einsum('ij, Dij, Dpq, pq -> iq', da, J_a, J_b, db)
         A = A.detach().cpu()
 
