@@ -4,7 +4,8 @@ from os.path import join, exists
 from os import PathLike
 import wget
 import sys
-from torch import cosine_similarity, dot, Tensor, einsum
+from torch import  Tensor
+import torch
 #from .XSTransformer import XSMPNet, XSRoberta
 
 
@@ -56,29 +57,19 @@ def load_model(name: str, model_dir: PathLike = '../xs_models/'):
         model = XSMPNet(path)
     return model
 
-def cossim(emb_a: Tensor, emb_b: Tensor, ref_a: Tensor, ref_b: Tensor, sim_mat: Tensor):
-    score = cosine_similarity(emb_a.unsqueeze(0), emb_b.unsqueeze(0)).item()
-    ref_emb_a = cosine_similarity(emb_a.unsqueeze(0), ref_b.unsqueeze(0)).item()
-    ref_emb_b = cosine_similarity(emb_b.unsqueeze(0), ref_a.unsqueeze(0)).item()
-    ref_ref = cosine_similarity(ref_a.unsqueeze(0), ref_b.unsqueeze(0)).item()
-    return score, ref_emb_a, ref_emb_b, ref_ref
+def cossim(a: Tensor, b: Tensor,  sim_mat: Tensor):
+    o = torch.cosine_similarity(a.unsqueeze(0), b.unsqueeze(0)).item()
+    return o
+def dotsim(a: Tensor, b: Tensor, sim_mat: Tensor):
+    o = torch.dot(a, b).item()
+    return o
 
-def dotsim(emb_a: Tensor, emb_b: Tensor, ref_a: Tensor, ref_b: Tensor, sim_mat: Tensor):
-    score = dot(emb_a, emb_b).item()
-    ref_emb_a = dot(emb_a, ref_b).item()
-    ref_emb_b = dot(emb_b, ref_a).item()
-    ref_ref = dot(ref_a, ref_b).item()
-    return score, ref_emb_a, ref_emb_b, ref_ref
+def bilinear_sim(a: Tensor, b: Tensor, sim_mat: Tensor):
+    o = torch.stack([torch.sum(a * (b @ M) , dim=0) for M in sim_mat], dim= 0 )
+    return o
 
-def bilinear_sim(emb_a: Tensor, emb_b: Tensor, ref_a: Tensor, ref_b: Tensor, sim_mat: Tensor):
-    score = einsum('i, Lip, p -> L', emb_a, sim_mat, emb_b)
-    ref_emb_a = einsum('i, Lip, p -> L', emb_a, sim_mat, ref_a)
-    ref_emb_b = einsum('i, Lip, p -> L', emb_b, sim_mat, ref_b)
-    ref_ref = einsum('i, Lip, p -> L', ref_a, sim_mat, ref_b)
-    return score, ref_emb_a, ref_emb_b, ref_ref
-
-def gencos_sim(emb_a: Tensor, emb_b: Tensor, ref_a: Tensor, ref_b: Tensor, sim_mat: Tensor):
+def gencos_sim(emb_a: Tensor, emb_b: Tensor,  sim_mat: Tensor):
     pass
 
-def softcos_sim(emb_a: Tensor, emb_b: Tensor, ref_a: Tensor, ref_b: Tensor, sim_mat: Tensor):
+def softcos_sim(emb_a: Tensor, emb_b: Tensor, sim_mat: Tensor):
     pass

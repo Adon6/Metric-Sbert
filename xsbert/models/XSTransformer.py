@@ -278,6 +278,13 @@ class XSTransformer(SentenceTransformer):
         else:
             return A, tokens_a, tokens_b
 
+    def get_token_embeddings(self, text: str, device: str = "cpu"):
+        inpt = self[0].tokenize([text])
+        input_to_device(inpt, device)
+        features = self.forward(inpt)
+        emb = features['token_embeddings']
+        return emb[0]
+
     def get_sentence_embedding(self, text: str, device: str = "cpu"):
         inpt = self[0].tokenize([text])
         input_to_device(inpt, device)
@@ -347,7 +354,12 @@ class XSTransformer(SentenceTransformer):
                 ref_a = ref_a.detach().cpu()
                 ref_b = ref_b.detach().cpu()
 
-            score, ref_emb_a, ref_emb_b, ref_ref = self.sim_fun(emb_a[0], emb_b[0], ref_a, ref_b, self.sim_mat)
+            #score, ref_emb_a, ref_emb_b, ref_ref = self.sim_fun(emb_a[0], emb_b[0], ref_a, ref_b, self.sim_mat)
+
+            score = self.sim_fun(emb_a[0], emb_b[0], self.sim_mat)
+            ref_emb_a = self.sim_fun(emb_a[0], ref_b, self.sim_mat)
+            ref_emb_b = self.sim_fun(emb_b[0], ref_a, self.sim_mat)
+            ref_ref = self.sim_fun(ref_a, ref_b, self.sim_mat)
 
             return A, tokens_a, tokens_b, score, ref_emb_a, ref_emb_b, ref_ref
         else:
@@ -388,7 +400,7 @@ class XSTransformer(SentenceTransformer):
             embeddings = [self.forward(inpt)['sentence_embedding'] for inpt in inputs]
             """
             embeddings = [ self.get_sentence_embedding(t, self.device)[0] for t in texts]
-            s = torch.dot(embeddings[0][0], embeddings[1][0]).cpu().item()
+            s = self.sim_fun(embeddings[0][0], embeddings[1][0], self.sim_mat)
             del embeddings
             torch.cuda.empty_cache()
         return s

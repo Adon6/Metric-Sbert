@@ -24,17 +24,17 @@ logging.basicConfig(
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model_path = "data/+_sentence-transformers-all-distilroberta-v1-2024-08-15_06-25-33/eval/epoch4_step-1_sim_evaluation_add_matrix.pth"
-model_name = "+"
+model_path = "data/f+D-20241003_200126/eval/epoch4_step-1_sim_evaluation_shift_matrix.pth"
+model_name = "o"
 model_save_path = (
-    "test/t__" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    "test/X+D__" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y%m%d_%H%M%S")
 )
 os.makedirs(os.path.dirname(model_save_path), exist_ok=True)
 
 # Load the pre-trained model
 test_model = BilinearLoss.load(model_path)
 
-test_batchsize = 64
+test_batchsize = 32
 
 # Load the copenlu/spanex dataset
 logging.info("Loading copenlu/spanex dataset")
@@ -51,6 +51,7 @@ test_samples = [
     )
     for example in ds['test']  # Assuming you want to use the test split
 ]
+print(len(test_samples))
 
 # Create the evaluator with the test samples
 test_evaluator = BilinearEvaluator.from_input_examples(

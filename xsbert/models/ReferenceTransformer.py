@@ -27,19 +27,6 @@ class ReferenceTransformer(models.Transformer):
                 features['token_type_ids'] = torch.cat([token_type_ids, ref_token], dim=0)
 
         return super().forward(features)
-
-        # emb = features['token_embeddings']
-
-        # att = features['attention_mask']
-        # if att.shape[0] > 1:
-        #     att = att[:-1]
-
-        # features.update({
-        #     'token_embeddings': emb,
-        #     'attention_mask': att
-        # })        
-
-        # return features
     
     
     @staticmethod

@@ -10,6 +10,7 @@ from sentence_transformers import SentenceTransformer
 from datasets import load_dataset
 from datetime import datetime
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report, confusion_matrix
+from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -18,25 +19,26 @@ from xsbert.utils import plot_attributions_multi
 from Bilinear_loss.BilinearLoss import BilinearLoss
 
 DEBUG = False
+in_device = torch.device('cuda')
 
 # Load model
-model_path = "data/o_sentence-transformers-all-distilroberta-v1-2024-08-15_06-25-36/eval/epoch9_step-1_sim_evaluation_o_matrix.pth"
-model_name = "do"
-sentence_transformer_model = SentenceTransformer('sentence-transformers/all-distilroberta-v1')
+model_path = "data/o_sentence-transformers-all-mpnet-base-v2-2024-08-15_06-25-38/eval/epoch9_step-1_sim_evaluation_o_matrix.pth"
+model_name = "oM"
+#sentence_transformer_model = SentenceTransformer('sentence-transformers/all-distilroberta-v1')
 bilinear_loss = BilinearLoss.load(model_path)
 
 # Assume bilinear_loss is already initialized
 transformer_layer = bilinear_loss.model[0]
-save_path = 'transformer_layerx'
+save_path = 'transformer_layermx'
 transformer_layer.save(save_path)
 transformer = ReferenceTransformer.load(save_path)
 pooling = bilinear_loss.model[1]
 
 #create sbert for test and initialize
-test_sbert = XSRoberta(modules=[transformer, pooling], sim_measure="bilinear", sim_mat=bilinear_loss.get_sim_mat())
-test_sbert.to(torch.device('cuda'))
+test_sbert = XSMPNet(modules=[transformer, pooling], sim_measure="bilinear", sim_mat=bilinear_loss.get_sim_mat())
+test_sbert.to(in_device)
 test_sbert.reset_attribution()
-test_sbert.init_attribution_to_layer(idx=5, N_steps=100)
+test_sbert.init_attribution_to_layer(idx=11, N_steps=100)
 
 # Release bilinear_loss from memory if no longer needed
 del bilinear_loss
@@ -189,6 +191,24 @@ def save_results_and_metrics(true_labels, pred_labels):
         f.write("Classification Report:\n")
         f.write(f"{classification_rep}\n")
 
+def compute_token_embedding(texta, textb):
+    global test_sbert, in_device
+
+    emb_a = test_sbert.get_token_embeddings(texta, device = in_device)
+    emb_b = test_sbert.get_token_embeddings(textb, device = in_device)
+
+    # move to cpu
+    if emb_a.is_cuda:
+        emb_a = emb_a.cpu()
+    if emb_b.is_cuda:
+        emb_b = emb_b.cpu()
+
+    emb_a_np = emb_a.detach().numpy()  # shape: (len(tokens_a), embedding_dim)
+    emb_b_np = emb_b.detach().numpy()  # shape: (len(tokens_b), embedding_dim)
+
+    cossim_M = cosine_similarity(emb_a_np, emb_b_np)
+    return cossim_M.tolist()
+
 def process_example(idx, example):
     global results_df, output_prefix
     
@@ -225,6 +245,11 @@ def process_example(idx, example):
         pack_ex = test_sbert.explain_similarity_gen(premise, hypothesis, move_to_cpu=False, return_lhs_terms=True)
         A, tokens_a, tokens_b, score, ra, rb, rr = pack_ex
         
+        example_forsave['A'] = A.tolist()
+        example_forsave['Cossim_M'] = compute_token_embedding(premise, hypothesis)
+        example_forsave['tokens_A'] = tokens_a
+        example_forsave['tokens_B'] = tokens_b
+
         # Draw interpretation and save figure
         draw_interpretation(pack_ex, premise, hypothesis, label, idx)
         

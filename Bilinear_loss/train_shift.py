@@ -26,24 +26,32 @@ def main():
 
     TEST = False
 
-    #### Just some code to print debug information to stdout
     logging.basicConfig(
         format="%(asctime)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.INFO, handlers=[LoggingHandler()]
     )
-    #### /print debug information to stdout
+
+    # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
+    #model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
+    train_batch_size = 160
+    device = "cuda:4"
+
 
     # Check if dataset exists. If not, download and extract it
     nli_dataset_path = "data/AllNLI.tsv.gz"
     if not os.path.exists(nli_dataset_path):
         util.http_get("https://sbert.net/datasets/AllNLI.tsv.gz", nli_dataset_path)
 
-    # You can specify any huggingface/transformers pre-trained model here, for example, bert-base-uncased, roberta-base, xlm-roberta-base
-    model_name = sys.argv[1] if len(sys.argv) > 1 else "bert-base-uncased"
-    train_batch_size = int(sys.argv[2]) if len(sys.argv) > 2 else 32
-    device = sys.argv[3] if len(sys.argv) > 3 else ("cuda" if torch.cuda.is_available() else "cpu")
+    # Read the AllNLI.tsv.gz file and create the training dataset
+    logging.info("Read AllNLI train dataset")
+    label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
+    train_samples, dev_samples, test_samples = load_nil_data(nli_dataset_path)
+    if TEST:
+        train_samples = train_samples[:1000] 
+    train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
 
+    """ 
     model_save_path = (
-        "output/ef+_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+"_matrix.pth"
+        "output/f+_" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y%m%d_%H%M%S")+"_matrix.pth"
     )
 
 
@@ -63,16 +71,6 @@ def main():
         device = device,
         )
 
-
-    # Read the AllNLI.tsv.gz file and create the training dataset
-    logging.info("Read AllNLI train dataset")
-    label2int = {"contradiction": 0, "entailment": 1, "neutral": 2}
-    train_samples, dev_samples, test_samples = load_nil_data(nli_dataset_path)
-    if TEST:
-        train_samples = train_samples[:1000] 
-
-
-    train_dataloader = DataLoader(train_samples, shuffle=True, batch_size=train_batch_size)
     train_loss = BilinearLoss(
         model=model, 
         num_labels=len(label2int),
@@ -82,29 +80,27 @@ def main():
     )
 
     train_loss.save(model_save_path)
-
+    """
 
     # training config
 
-    #model_path = "input/training_add2_nli_sentence-transformers-all-mpnet-base-v2-2024-06-13_18-43-38/eval/epoch4_step-1_sim_evaluation_add_matrix.pth"
-    model_load_path = model_save_path
+    model_path = "input/+_sentence-transformers-all-distilroberta-v1-2024-08-15_06-25-33/eval/epoch9_step-1_sim_evaluation_add_matrix.pth"
     num_epochs = 5
-
 
     #model_save_path = '../xs_models/droberta_bilinear'
     model_save_path = (
-        "output/f+" + model_name.replace("/", "-") + "-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        "output/f+D" + "-" + datetime.now().strftime("%Y%m%d_%H%M%S")
     )
 
     if not os.path.exists(model_save_path):
         os.makedirs(model_save_path)
 
     # model
-    bilinear_loss = BilinearLoss.load(model_load_path)
+    bilinear_loss = BilinearLoss.load(model_path)
     bilinear_loss.device = device
 
     transformer_layer = bilinear_loss.model[0]
-    save_path =  'transformer_layertemp'
+    save_path =  'transformer_layert'
     transformer_layer.save(save_path)
     embedding_model = ShiftingReferenceTransformer(save_path)
 
@@ -117,11 +113,14 @@ def main():
         sim_mat= bilinear_loss.get_sim_mat(),
         sim_measure= "bilinear",
         )
+    
+    #update bilinear loss
+    bilinear_loss.model = xsmodel
 
     evaluator = BilinearEvaluator.from_input_examples(
         dev_samples, 
-        batch_size=train_batch_size, 
-        name="add-shift", 
+        batch_size=train_batch_size+1, 
+        name="shift", 
         similarity=bilinear_loss
     )
 

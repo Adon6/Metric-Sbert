@@ -65,7 +65,7 @@ class BilinearLoss(nn.Module):
 
         #self.Us = self.Us.to(eval_device)
         Ms = self.get_sim_mat(device = eval_device)
-
+        #print(f"{e1.shape}; {e2.shape}, {Ms.shape}")
         output = torch.stack([torch.sum(e1 * (e2 @ M) , dim=1) for M in Ms], dim= 1 )
 
         return output
@@ -106,6 +106,8 @@ class BilinearLoss(nn.Module):
     @classmethod
     def load(cls, path):
         checkpoint = torch.load(path)
+
+        # for the new version
         metadata = checkpoint.pop("metadata")
         smodel = SentenceTransformer.load(metadata['sentence_model_name'])
         
@@ -119,5 +121,53 @@ class BilinearLoss(nn.Module):
         )
         
         modelbili.load_state_dict(checkpoint['model_state_dict'])
+
+        return modelbili
+
+
+        # compatible fintuned-roberta | old roberta
+        sentence_transformer_model='sentence-transformers/all-distilroberta-v1'
+        metadata = checkpoint.pop('metadata')
+        model_type = metadata.get('model_type',"ADD")
+        normalized = metadata.get('normalized', False)
+        smodel = SentenceTransformer.load(sentence_transformer_model)
+
+        modelbili = cls(
+            model=smodel,
+            num_labels= sum(1 for key in checkpoint if key.startswith("Us")), 
+            normalization = '' if normalized else 'L2',
+            sim_method= 'ADD' if model_type == "ADD" else "NSYM" 
+        )
+        
+        modelbili.load_state_dict(checkpoint)
+        
+        return modelbili
+
+        # compatible finetuned-mpnet
+        model = SentenceTransformer.load(checkpoint['sentence_model_name'])
+        sim_mat = checkpoint['sim_mat']
+        
+        modelbili = cls(
+            model = model,
+            num_labels = checkpoint['num_labels'],
+            loss_fct = checkpoint['loss_fct'],
+            sentence_model_name = checkpoint['sentence_model_name'],
+            normalization = checkpoint['normalization'],
+            sim_method = checkpoint['sim_method'],
+        )
+        model_dict = checkpoint.pop('model_state_dict')
+
+        updated_model_dict = {}
+        for key, value in model_dict.items():
+            if not key.startswith('model.'):
+                updated_model_dict[f'model.{key}'] = value
+            else:
+                updated_model_dict[key] = value
+        
+        updated_model_dict['Us.0'] = sim_mat[0]
+        updated_model_dict['Us.1'] = sim_mat[1]
+        updated_model_dict['Us.2'] = sim_mat[2]
+        
+        modelbili.load_state_dict(updated_model_dict)
         
         return modelbili
